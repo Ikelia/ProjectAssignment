@@ -1,11 +1,15 @@
+import exceptions.InvalidAmountException;
+import exceptions.OverdraftLimitExceededException;
+
 /**
  * A checking account with overdraft protection.
  * Demonstrates INHERITANCE — extends Account.
  * Demonstrates POLYMORPHISM — overrides withdraw() with different logic than SavingsAccount.
+ * Throws OverdraftLimitExceededException (custom unchecked) when overdraft limit is breached.
  */
 public class CheckingAccount extends Account {
 
-    private final double overdraftLimit; // how much you can go negative
+    private final double overdraftLimit;
 
     public CheckingAccount(String accountNumber, double initialBalance,
                            Customer owner, double overdraftLimit) {
@@ -13,17 +17,21 @@ public class CheckingAccount extends Account {
         this.overdraftLimit = overdraftLimit;
     }
 
-    /** Checking accounts allow overdraft up to a limit. */
+    /**
+     * Withdraws from checking account.
+     * @throws InvalidAmountException          if amount is zero or negative
+     * @throws OverdraftLimitExceededException if withdrawal would exceed overdraft limit
+     */
     @Override
     public void withdraw(double amount) {
-        if (amount <= 0) throw new IllegalArgumentException("Amount must be positive.");
+        if (amount <= 0) {
+            throw new InvalidAmountException(amount);
+        }
         if (getBalance() - amount < -overdraftLimit) {
-            System.out.printf("  DENIED: Withdrawal of $%.2f - overdraft limit of $%.2f exceeded.%n",
-                    amount, overdraftLimit);
-            return;
+            throw new OverdraftLimitExceededException(amount, getBalance(), overdraftLimit);
         }
         deductBalance(amount);
-        System.out.printf("  Withdrew $%.2f -> balance: $%.2f%n", amount, getBalance());
+        System.out.printf("  Withdrew $%.2f -> new balance: $%.2f%n", amount, getBalance());
     }
 
     @Override

@@ -1,9 +1,15 @@
+import exceptions.*;
+
 import java.util.List;
 import java.util.Scanner;
 
 /**
- * Interactive ATM / Bank Account System
- * Register, open accounts, deposit, withdraw, and view summaries.
+ * Interactive ATM / Bank Account System — Main entry point.
+ *
+ * Demonstrates exception handling:
+ *   - try-catch with multiple catch blocks
+ *   - Custom exceptions caught and shown as friendly messages
+ *   - Program never crashes — all errors are handled gracefully
  */
 public class Main {
 
@@ -45,43 +51,37 @@ public class Main {
         System.out.println("------------------------------------------");
     }
 
-    // ── Step 1: Register customer + open account in one flow ─────────────────
+    // ── Option 1: Register customer + open account ────────────────────────────
 
     private static void registerAndOpenAccount() {
         System.out.println("\n--- Register & Open Account ---");
 
-        // ── Customer details ──────────────────────────────────────────────────
-        String name = readNonEmpty("Full name: ");
+        // ── Collect customer details ──────────────────────────────────────────
+        String name  = readNonEmpty("Full name: ");
+        String id    = readNonEmpty("Customer ID (e.g. C001): ");
+        String email = readNonEmpty("Email address: ");
 
-        String id;
-        while (true) {
-            id = readNonEmpty("Customer ID (e.g. C001): ");
-            if (bank.findCustomer(id).isPresent()) {
-                System.out.println("  ERROR: ID '" + id + "' is already taken. Choose another.");
-            } else {
-                break;
-            }
+        // ── Try to create and register the customer ───────────────────────────
+        Customer customer;
+        try {
+            customer = new Customer(name, id, email);  // may throw InvalidNameException or InvalidEmailException
+            bank.addCustomer(customer);                 // may throw DuplicateCustomerException
+        } catch (InvalidNameException e) {
+            System.out.println("  REGISTRATION FAILED - " + e.getMessage());
+            return;
+        } catch (InvalidEmailException e) {
+            System.out.println("  REGISTRATION FAILED - " + e.getMessage());
+            return;
+        } catch (DuplicateCustomerException e) {
+            System.out.println("  REGISTRATION FAILED - " + e.getMessage());
+            return;
         }
-
-        String email;
-        while (true) {
-            email = readNonEmpty("Email address: ");
-            if (!email.contains("@") || !email.contains(".")) {
-                System.out.println("  ERROR: Invalid email. Must contain '@' and '.'");
-            } else {
-                break;
-            }
-        }
-
-        Customer customer = new Customer(name, id, email);
-        bank.addCustomer(customer);
-        System.out.println("  Customer registered: " + customer.getName() + " [" + id + "]");
 
         // ── Open first account immediately ────────────────────────────────────
         System.out.println("\n  Now let's open your account.");
         openAccountFor(customer);
 
-        // ── Offer to open a second account ────────────────────────────────────
+        // ── Offer a second account ────────────────────────────────────────────
         System.out.print("\n  Would you like to open another account? (yes/no): ");
         if (scanner.nextLine().trim().equalsIgnoreCase("yes")) {
             openAccountFor(customer);
@@ -95,42 +95,47 @@ public class Main {
         System.out.println("    2. Checking Account");
         int type = readInt("  Choose (1 or 2): ", 1, 2);
 
-        String accountNumber;
-        while (true) {
-            accountNumber = readNonEmpty("  Account number (e.g. SA-1001): ");
-            if (bank.findAccount(accountNumber).isPresent()) {
-                System.out.println("  ERROR: Account number '" + accountNumber + "' already exists.");
-            } else {
-                break;
-            }
-        }
-
+        String accountNumber = readNonEmpty("  Account number (e.g. SA-1001): ");
         double initialBalance = readDouble("  Initial deposit amount ($): ", 0.01, Double.MAX_VALUE);
 
-        if (type == 1) {
-            double rate = readPercent("  Annual interest rate (e.g. 0.03 or 3%): ", 0.0, 1.0);
-            bank.openAccount(new SavingsAccount(accountNumber, initialBalance, owner, rate));
-        } else {
-            double overdraft = readDouble("  Overdraft limit ($): ", 0.0, Double.MAX_VALUE);
-            bank.openAccount(new CheckingAccount(accountNumber, initialBalance, owner, overdraft));
+        try {
+            if (type == 1) {
+                double rate = readPercent("  Annual interest rate (e.g. 0.03 or 3%): ", 0.0, 1.0);
+                bank.openAccount(new SavingsAccount(accountNumber, initialBalance, owner, rate));
+            } else {
+                double overdraft = readDouble("  Overdraft limit ($): ", 0.0, Double.MAX_VALUE);
+                bank.openAccount(new CheckingAccount(accountNumber, initialBalance, owner, overdraft));
+            }
+        } catch (DuplicateAccountException e) {
+            // Specific: account number already taken
+            System.out.println("  ACCOUNT CREATION FAILED - " + e.getMessage());
+        } catch (BankException e) {
+            // Fallback for any other bank-related issue
+            System.out.println("  ACCOUNT CREATION FAILED - " + e.getMessage());
         }
     }
 
-    // ── Step 2: Deposit or Withdraw ───────────────────────────────────────────
+    // ── Option 2: Deposit or Withdraw ─────────────────────────────────────────
 
     private static void performTransaction() {
         System.out.println("\n--- Deposit / Withdraw ---");
 
         String customerId = readNonEmpty("Your customer ID: ");
-        Customer customer = bank.findCustomer(customerId).orElse(null);
-        if (customer == null) {
-            System.out.println("  ERROR: No customer found with ID '" + customerId + "'.");
+
+        // Look up customer — show friendly message if not found, never crash
+        Customer customer;
+        try {
+            customer = bank.findCustomer(customerId)
+                    .orElseThrow(() -> new CustomerNotFoundException(customerId));
+        } catch (CustomerNotFoundException e) {
+            System.out.println("  ERROR - " + e.getMessage());
             return;
         }
 
         List<Account> myAccounts = bank.getAccountsForCustomer(customerId);
         if (myAccounts.isEmpty()) {
-            System.out.println("  ERROR: No accounts found for '" + customer.getName() + "'.");
+            System.out.println("  No accounts found for '" + customer.getName()
+                    + "'. Please open an account first (menu option 1).");
             return;
         }
 
@@ -141,20 +146,33 @@ public class Main {
                     i + 1, a.getAccountNumber(), a.getAccountType(), a.getBalance());
         }
 
-        int pick = readInt("  Select account: ", 1, myAccounts.size());
+        int pick   = readInt("  Select account: ", 1, myAccounts.size());
         Account account = myAccounts.get(pick - 1);
 
         System.out.println("  Transaction type:");
         System.out.println("    1. Deposit");
         System.out.println("    2. Withdraw");
-        int type = readInt("  Choose (1 or 2): ", 1, 2);
-
+        int type   = readInt("  Choose (1 or 2): ", 1, 2);
         double amount = readDouble("  Amount ($): ", 0.01, Double.MAX_VALUE);
 
-        if (type == 1) {
-            account.deposit(amount);
-        } else {
-            account.withdraw(amount);
+        try {
+            if (type == 1) {
+                account.deposit(amount);
+            } else {
+                account.withdraw(amount);
+            }
+        } catch (InsufficientFundsException e) {
+            // Savings account minimum balance rule violated
+            System.out.println("  TRANSACTION DENIED - " + e.getMessage());
+        } catch (OverdraftLimitExceededException e) {
+            // Checking account overdraft limit exceeded
+            System.out.println("  TRANSACTION DENIED - " + e.getMessage());
+        } catch (InvalidAmountException e) {
+            // Amount was zero or negative (shouldn't reach here due to readDouble, but defensive)
+            System.out.println("  TRANSACTION FAILED - " + e.getMessage());
+        } catch (BankException e) {
+            // Catch-all for any other bank exception
+            System.out.println("  TRANSACTION FAILED - " + e.getMessage());
         }
     }
 
@@ -178,6 +196,7 @@ public class Main {
                 if (value >= min && value <= max) return value;
                 System.out.println("  ERROR: Enter a number between " + min + " and " + max + ".");
             } catch (NumberFormatException e) {
+                // Built-in unchecked exception — non-numeric input
                 System.out.println("  ERROR: '" + input + "' is not a valid number.");
             }
         }
@@ -190,8 +209,9 @@ public class Main {
             try {
                 double value = Double.parseDouble(input);
                 if (value >= min && value <= max) return value;
-                System.out.println("  ERROR: Value must be greater than " + min + ".");
+                System.out.println("  ERROR: Value must be greater than $" + min + ".");
             } catch (NumberFormatException e) {
+                // Built-in unchecked exception — non-numeric input
                 System.out.println("  ERROR: '" + input + "' is not a valid number.");
             }
         }
@@ -209,6 +229,7 @@ public class Main {
                 if (value >= min && value <= max) return value;
                 System.out.println("  ERROR: Rate must be between 0% and 100%.");
             } catch (NumberFormatException e) {
+                // Built-in unchecked exception — non-numeric input
                 System.out.println("  ERROR: '" + input + "' is not valid. Use 0.04, 4, or 4%.");
             }
         }

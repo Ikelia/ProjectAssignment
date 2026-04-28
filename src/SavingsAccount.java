@@ -1,12 +1,16 @@
+import exceptions.InsufficientFundsException;
+import exceptions.InvalidAmountException;
+
 /**
- * A savings account that earns interest but has a minimum balance rule.
+ * A savings account that earns interest but enforces a minimum balance.
  * Demonstrates INHERITANCE — extends Account.
  * Demonstrates POLYMORPHISM — overrides withdraw() with its own business rule.
+ * Throws InsufficientFundsException (custom unchecked) when minimum balance would be breached.
  */
 public class SavingsAccount extends Account {
 
     private static final double MINIMUM_BALANCE = 100.0;
-    private final double interestRate; // annual rate, e.g. 0.03 = 3 %
+    private final double interestRate; // e.g. 0.03 = 3%
 
     public SavingsAccount(String accountNumber, double initialBalance,
                           Customer owner, double interestRate) {
@@ -14,20 +18,24 @@ public class SavingsAccount extends Account {
         this.interestRate = interestRate;
     }
 
-    /** Savings accounts require a minimum balance after every withdrawal. */
+    /**
+     * Withdraws from savings account.
+     * @throws InvalidAmountException      if amount is zero or negative
+     * @throws InsufficientFundsException  if withdrawal would drop balance below minimum
+     */
     @Override
     public void withdraw(double amount) {
-        if (amount <= 0) throw new IllegalArgumentException("Amount must be positive.");
+        if (amount <= 0) {
+            throw new InvalidAmountException(amount);
+        }
         if (getBalance() - amount < MINIMUM_BALANCE) {
-            System.out.printf("  DENIED: Withdrawal of $%.2f - minimum balance of $%.2f required.%n",
-                    amount, MINIMUM_BALANCE);
-            return;
+            throw new InsufficientFundsException(amount, getBalance(), MINIMUM_BALANCE);
         }
         deductBalance(amount);
-        System.out.printf("  Withdrew $%.2f -> balance: $%.2f%n", amount, getBalance());
+        System.out.printf("  Withdrew $%.2f -> new balance: $%.2f%n", amount, getBalance());
     }
 
-    /** Apply annual interest to the current balance. */
+    /** Applies annual interest to the current balance. */
     public void applyInterest() {
         double interest = getBalance() * interestRate;
         deposit(interest);
