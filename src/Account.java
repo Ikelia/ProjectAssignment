@@ -1,20 +1,39 @@
 import exceptions.InvalidAmountException;
 
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
  * Abstract representation of a bank account.
  * Demonstrates ABSTRACTION — defines the contract every account must fulfil.
  * Demonstrates ENCAPSULATION — balance is private; modified only through methods.
- * Throws InvalidAmountException (custom unchecked) for bad deposit amounts.
+ *
+ * ── Collection used and why ───────────────────────────────────────────────────
+ *
+ * LinkedList<Transaction>  history
+ * Relationship : Account  ──(records many)──>  Transaction   (one-to-many)
+ * Why LinkedList?
+ *   - Transactions are always appended at the end (addLast) — O(1).
+ *   - We never need random access by index; we only iterate from first to last.
+ *   - LinkedList is ideal for an ordered sequence of events where
+ *     insertion order matters and random access is not needed.
+ *   - Contrast with ArrayList: ArrayList is better when random access is frequent.
+ *     For a transaction log, we only ever add and iterate — LinkedList fits perfectly.
  */
 public abstract class Account {
 
     private final String accountNumber;
     private double balance;
     private final Customer owner;
-    private final List<Transaction> history = new ArrayList<>();
+
+    /*
+     * COLLECTION — LinkedList<Transaction>
+     * Relationship: one account records many transactions in order.
+     * LinkedList chosen because transactions are always appended (O(1) addLast)
+     * and only ever iterated — never accessed by index.
+     */
+    private final LinkedList<Transaction> history = new LinkedList<>();
 
     public Account(String accountNumber, double initialBalance, Customer owner) {
         this.accountNumber = accountNumber;
@@ -26,12 +45,17 @@ public abstract class Account {
     public String getAccountNumber()      { return accountNumber; }
     public double getBalance()            { return balance; }
     public Customer getOwner()            { return owner; }
-    public List<Transaction> getHistory() { return List.copyOf(history); }
+
+    /** Returns an unmodifiable view of the transaction history (in order). */
+    public List<Transaction> getHistory() {
+        return Collections.unmodifiableList(history);
+    }
 
     // ── Core operations ───────────────────────────────────────────────────────
 
     /**
      * Deposits money into the account.
+     * ADD operation on LinkedList — appends a new Transaction to the history.
      * @throws InvalidAmountException if amount is zero or negative
      */
     public void deposit(double amount) {
@@ -39,25 +63,24 @@ public abstract class Account {
             throw new InvalidAmountException(amount);
         }
         balance += amount;
-        history.add(new Transaction(Transaction.Type.DEPOSIT, amount, "Deposit"));
+        // ADD to LinkedList
+        history.addLast(new Transaction(Transaction.Type.DEPOSIT, amount, "Deposit"));
         System.out.printf("  Deposited $%.2f -> new balance: $%.2f%n", amount, balance);
     }
 
     /**
      * Withdraw money. Each account type enforces its own rules (POLYMORPHISM).
-     * Subclasses throw their own custom exceptions on rule violations.
      */
     public abstract void withdraw(double amount);
 
-    /**
-     * Returns a label describing the account type (POLYMORPHISM).
-     */
+    /** Returns a label describing the account type (POLYMORPHISM). */
     public abstract String getAccountType();
 
     // ── Shared helper used by subclasses ──────────────────────────────────────
     protected void deductBalance(double amount) {
         balance -= amount;
-        history.add(new Transaction(Transaction.Type.WITHDRAWAL, amount, "Withdrawal"));
+        // ADD to LinkedList
+        history.addLast(new Transaction(Transaction.Type.WITHDRAWAL, amount, "Withdrawal"));
     }
 
     // ── Display ───────────────────────────────────────────────────────────────
@@ -70,6 +93,7 @@ public abstract class Account {
         if (history.isEmpty()) {
             System.out.println("    (no transactions yet)");
         } else {
+            // RETRIEVE — iterate LinkedList in insertion order
             history.forEach(t -> System.out.println("    " + t));
         }
         System.out.println("-----------------------------------------");

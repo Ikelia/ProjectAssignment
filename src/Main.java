@@ -6,10 +6,17 @@ import java.util.Scanner;
 /**
  * Interactive ATM / Bank Account System — Main entry point.
  *
+ * Demonstrates Collections Framework:
+ *   - Map<String, Customer>          : key-value lookup of customers by ID
+ *   - Map<String, List<Account>>     : one-to-many (customer -> accounts)
+ *   - Map<String, Account>           : key-value lookup of accounts by number
+ *   - LinkedList<Transaction>        : ordered transaction history per account
+ *   - Set<String>                    : unique account types per customer
+ *
  * Demonstrates exception handling:
  *   - try-catch with multiple catch blocks
- *   - Custom exceptions caught and shown as friendly messages
- *   - Program never crashes — all errors are handled gracefully
+ *   - Custom exceptions shown as friendly messages
+ *   - Program never crashes
  */
 public class Main {
 
@@ -24,12 +31,13 @@ public class Main {
         boolean running = true;
         while (running) {
             printMainMenu();
-            int choice = readInt("Enter choice: ", 1, 4);
+            int choice = readInt("Enter choice: ", 1, 5);
             switch (choice) {
                 case 1 -> registerAndOpenAccount();
                 case 2 -> performTransaction();
-                case 3 -> bank.printSummary();
-                case 4 -> {
+                case 3 -> closeAccount();
+                case 4 -> bank.printSummary();
+                case 5 -> {
                     System.out.println("Goodbye!");
                     running = false;
                 }
@@ -46,8 +54,9 @@ public class Main {
         System.out.println("------------------------------------------");
         System.out.println("  1. Register and open an account");
         System.out.println("  2. Deposit / Withdraw");
-        System.out.println("  3. View all accounts (bank summary)");
-        System.out.println("  4. Exit");
+        System.out.println("  3. Close an account");
+        System.out.println("  4. View all accounts (bank summary)");
+        System.out.println("  5. Exit");
         System.out.println("------------------------------------------");
     }
 
@@ -56,16 +65,14 @@ public class Main {
     private static void registerAndOpenAccount() {
         System.out.println("\n--- Register & Open Account ---");
 
-        // ── Collect customer details ──────────────────────────────────────────
         String name  = readNonEmpty("Full name: ");
         String id    = readNonEmpty("Customer ID (e.g. C001): ");
         String email = readNonEmpty("Email address: ");
 
-        // ── Try to create and register the customer ───────────────────────────
         Customer customer;
         try {
-            customer = new Customer(name, id, email);  // may throw InvalidNameException or InvalidEmailException
-            bank.addCustomer(customer);                 // may throw DuplicateCustomerException
+            customer = new Customer(name, id, email);
+            bank.addCustomer(customer);
         } catch (InvalidNameException e) {
             System.out.println("  REGISTRATION FAILED - " + e.getMessage());
             return;
@@ -77,11 +84,9 @@ public class Main {
             return;
         }
 
-        // ── Open first account immediately ────────────────────────────────────
         System.out.println("\n  Now let's open your account.");
         openAccountFor(customer);
 
-        // ── Offer a second account ────────────────────────────────────────────
         System.out.print("\n  Would you like to open another account? (yes/no): ");
         if (scanner.nextLine().trim().equalsIgnoreCase("yes")) {
             openAccountFor(customer);
@@ -95,7 +100,12 @@ public class Main {
         System.out.println("    2. Checking Account");
         int type = readInt("  Choose (1 or 2): ", 1, 2);
 
-        String accountNumber = readNonEmpty("  Account number (e.g. SA-1001): ");
+        // Show which types the customer already holds (RETRIEVE from Set)
+        if (!owner.getAccountTypes().isEmpty()) {
+            System.out.println("  Account types you already hold: " + owner.getAccountTypes());
+        }
+
+        String accountNumber  = readNonEmpty("  Account number (e.g. SA-1001): ");
         double initialBalance = readDouble("  Initial deposit amount ($): ", 0.01, Double.MAX_VALUE);
 
         try {
@@ -106,11 +116,11 @@ public class Main {
                 double overdraft = readDouble("  Overdraft limit ($): ", 0.0, Double.MAX_VALUE);
                 bank.openAccount(new CheckingAccount(accountNumber, initialBalance, owner, overdraft));
             }
+            // Show updated Set of account types after opening
+            System.out.println("  Your account types: " + owner.getAccountTypes());
         } catch (DuplicateAccountException e) {
-            // Specific: account number already taken
             System.out.println("  ACCOUNT CREATION FAILED - " + e.getMessage());
         } catch (BankException e) {
-            // Fallback for any other bank-related issue
             System.out.println("  ACCOUNT CREATION FAILED - " + e.getMessage());
         }
     }
@@ -122,7 +132,6 @@ public class Main {
 
         String customerId = readNonEmpty("Your customer ID: ");
 
-        // Look up customer — show friendly message if not found, never crash
         Customer customer;
         try {
             customer = bank.findCustomer(customerId)
@@ -132,6 +141,7 @@ public class Main {
             return;
         }
 
+        // RETRIEVE from Map<String, List<Account>> — get this customer's account list
         List<Account> myAccounts = bank.getAccountsForCustomer(customerId);
         if (myAccounts.isEmpty()) {
             System.out.println("  No accounts found for '" + customer.getName()
@@ -146,13 +156,13 @@ public class Main {
                     i + 1, a.getAccountNumber(), a.getAccountType(), a.getBalance());
         }
 
-        int pick   = readInt("  Select account: ", 1, myAccounts.size());
+        int pick        = readInt("  Select account: ", 1, myAccounts.size());
         Account account = myAccounts.get(pick - 1);
 
         System.out.println("  Transaction type:");
         System.out.println("    1. Deposit");
         System.out.println("    2. Withdraw");
-        int type   = readInt("  Choose (1 or 2): ", 1, 2);
+        int type      = readInt("  Choose (1 or 2): ", 1, 2);
         double amount = readDouble("  Amount ($): ", 0.01, Double.MAX_VALUE);
 
         try {
@@ -161,18 +171,68 @@ public class Main {
             } else {
                 account.withdraw(amount);
             }
+            // Show last transaction from LinkedList history (RETRIEVE)
+            List<Transaction> history = account.getHistory();
+            if (!history.isEmpty()) {
+                System.out.println("  Last recorded: " + history.get(history.size() - 1));
+            }
         } catch (InsufficientFundsException e) {
-            // Savings account minimum balance rule violated
             System.out.println("  TRANSACTION DENIED - " + e.getMessage());
         } catch (OverdraftLimitExceededException e) {
-            // Checking account overdraft limit exceeded
             System.out.println("  TRANSACTION DENIED - " + e.getMessage());
         } catch (InvalidAmountException e) {
-            // Amount was zero or negative (shouldn't reach here due to readDouble, but defensive)
             System.out.println("  TRANSACTION FAILED - " + e.getMessage());
         } catch (BankException e) {
-            // Catch-all for any other bank exception
             System.out.println("  TRANSACTION FAILED - " + e.getMessage());
+        }
+    }
+
+    // ── Option 3: Close an account ────────────────────────────────────────────
+
+    private static void closeAccount() {
+        System.out.println("\n--- Close Account ---");
+
+        String customerId = readNonEmpty("Your customer ID: ");
+
+        Customer customer;
+        try {
+            customer = bank.findCustomer(customerId)
+                    .orElseThrow(() -> new CustomerNotFoundException(customerId));
+        } catch (CustomerNotFoundException e) {
+            System.out.println("  ERROR - " + e.getMessage());
+            return;
+        }
+
+        // RETRIEVE from Map<String, List<Account>>
+        List<Account> myAccounts = bank.getAccountsForCustomer(customerId);
+        if (myAccounts.isEmpty()) {
+            System.out.println("  No accounts found for '" + customer.getName() + "'.");
+            return;
+        }
+
+        System.out.println("  Accounts for " + customer.getName() + ":");
+        for (int i = 0; i < myAccounts.size(); i++) {
+            Account a = myAccounts.get(i);
+            System.out.printf("    %d. [%s] %-18s  Balance: $%.2f%n",
+                    i + 1, a.getAccountNumber(), a.getAccountType(), a.getBalance());
+        }
+
+        int pick        = readInt("  Select account to close: ", 1, myAccounts.size());
+        Account account = myAccounts.get(pick - 1);
+
+        System.out.print("  Are you sure you want to close account ["
+                + account.getAccountNumber() + "]? (yes/no): ");
+        if (!scanner.nextLine().trim().equalsIgnoreCase("yes")) {
+            System.out.println("  Cancelled.");
+            return;
+        }
+
+        try {
+            // REMOVE from Map and List — also updates the customer's Set
+            bank.removeAccount(account.getAccountNumber());
+            System.out.println("  Account types you still hold: " + customer.getAccountTypes());
+        } catch (AccountNotFoundException e) {
+            System.out.println("  ERROR - " + e.getMessage());
         }
     }
 
@@ -196,7 +256,6 @@ public class Main {
                 if (value >= min && value <= max) return value;
                 System.out.println("  ERROR: Enter a number between " + min + " and " + max + ".");
             } catch (NumberFormatException e) {
-                // Built-in unchecked exception — non-numeric input
                 System.out.println("  ERROR: '" + input + "' is not a valid number.");
             }
         }
@@ -211,13 +270,11 @@ public class Main {
                 if (value >= min && value <= max) return value;
                 System.out.println("  ERROR: Value must be greater than $" + min + ".");
             } catch (NumberFormatException e) {
-                // Built-in unchecked exception — non-numeric input
                 System.out.println("  ERROR: '" + input + "' is not a valid number.");
             }
         }
     }
 
-    /** Accepts 0.04, 4, or 4% — always returns a decimal fraction. */
     private static double readPercent(String prompt, double min, double max) {
         while (true) {
             System.out.print(prompt);
@@ -229,7 +286,6 @@ public class Main {
                 if (value >= min && value <= max) return value;
                 System.out.println("  ERROR: Rate must be between 0% and 100%.");
             } catch (NumberFormatException e) {
-                // Built-in unchecked exception — non-numeric input
                 System.out.println("  ERROR: '" + input + "' is not valid. Use 0.04, 4, or 4%.");
             }
         }
