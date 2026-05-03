@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.bank.ui.controller.MainController"
+            styleClass="root-pane">
+
+    <!-- ══════════════════════════════════════════════════════════════
+         TOP — Bank header
+    ══════════════════════════════════════════════════════════════ -->
+    <top>
+        <VBox styleClass="header-box">
+            <padding><Insets top="16" right="24" bottom="16" left="24"/></padding>
+            <Label fx:id="lblBankName" styleClass="bank-title" text="National Bank"/>
+            <Label fx:id="lblStatus"  styleClass="status-label" text="Initialising…"/>
+        </VBox>
+    </top>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CENTER — Tab pane
+    ══════════════════════════════════════════════════════════════ -->
+    <center>
+        <TabPane tabClosingPolicy="UNAVAILABLE" styleClass="main-tabs">
+
+            <!-- ─────────────────────────────────────────────────────
+                 TAB 1 — Customers
+            ───────────────────────────────────────────────────── -->
+            <Tab text="👤  Customers">
+                <SplitPane dividerPositions="0.38" orientation="HORIZONTAL">
+
+                    <!-- Left: form -->
+                    <VBox spacing="10" styleClass="form-panel">
+                        <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+
+                        <Label text="Register New Customer" styleClass="section-title"/>
+                        <Separator/>
+
+                        <Label text="Full Name"/>
+                        <TextField fx:id="tfCustName" promptText="e.g. Alice Smith"/>
+
+                        <Label text="Customer ID"/>
+                        <TextField fx:id="tfCustId" promptText="e.g. C001"/>
+
+                        <Label text="Email Address"/>
+                        <TextField fx:id="tfCustEmail" promptText="e.g. alice@example.com"/>
+
+                        <HBox spacing="8">
+                            <Button text="➕  Add Customer"    onAction="#onAddCustomer"    styleClass="btn-primary"/>
+                            <Button text="🗑  Remove Selected" onAction="#onRemoveCustomer" styleClass="btn-danger"/>
+                        </HBox>
+
+                        <Separator/>
+                        <Label text="Search / Sort" styleClass="section-title"/>
+
+                        <HBox spacing="8">
+                            <TextField fx:id="tfSearchCustId" promptText="Customer ID…" HBox.hgrow="ALWAYS"/>
+                            <Button text="🔍 Search" onAction="#onSearchCustomer" styleClass="btn-secondary"/>
+                        </HBox>
+                        <Button text="🔤  Sort A → Z" onAction="#onSortCustomers" styleClass="btn-secondary" maxWidth="Infinity"/>
+
+                        <Label fx:id="lblCustMessage" wrapText="true" styleClass="message-label"/>
+                    </VBox>
+
+                    <!-- Right: table -->
+                    <VBox VBox.vgrow="ALWAYS">
+                        <padding><Insets top="20" right="20" bottom="20" left="10"/></padding>
+                        <Label text="All Customers" styleClass="section-title"/>
+                        <TableView fx:id="tblCustomers" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colCustId"    text="ID"    minWidth="90"  prefWidth="110"/>
+                                <TableColumn fx:id="colCustName"  text="Name"  minWidth="160" prefWidth="220"/>
+                                <TableColumn fx:id="colCustEmail" text="Email" minWidth="180" prefWidth="260"/>
+                            </columns>
+                            <placeholder><Label text="No customers registered yet."/></placeholder>
+                        </TableView>
+                    </VBox>
+                </SplitPane>
+            </Tab>
+
+            <!-- ─────────────────────────────────────────────────────
+                 TAB 2 — Accounts
+            ───────────────────────────────────────────────────── -->
+            <Tab text="🏦  Accounts">
+                <SplitPane dividerPositions="0.38" orientation="HORIZONTAL">
+
+                    <!-- Left: form -->
+                    <VBox spacing="10" styleClass="form-panel">
+                        <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+
+                        <Label text="Open New Account" styleClass="section-title"/>
+                        <Separator/>
+
+                        <Label text="Account Number"/>
+                        <TextField fx:id="tfAccNumber" promptText="e.g. SA-1001"/>
+
+                        <Label text="Owner Customer ID"/>
+                        <TextField fx:id="tfAccOwnerId" promptText="e.g. C001"/>
+
+                        <Label text="Account Type"/>
+                        <ComboBox fx:id="cbAccType" maxWidth="Infinity"/>
+
+                        <Label text="Initial Balance ($)"/>
+                        <TextField fx:id="tfAccBalance" promptText="e.g. 500.00"/>
+
+                        <Label fx:id="lblAccExtraHint" text="Extra Parameter"/>
+                        <TextField fx:id="tfAccExtra" promptText="e.g. 0.05"/>
+
+                        <HBox spacing="8">
+                            <Button text="➕  Open Account"    onAction="#onAddAccount"    styleClass="btn-primary"/>
+                            <Button text="🗑  Close Selected"  onAction="#onRemoveAccount" styleClass="btn-danger"/>
+                        </HBox>
+
+                        <Separator/>
+                        <Label text="Search / Sort" styleClass="section-title"/>
+
+                        <HBox spacing="8">
+                            <TextField fx:id="tfSearchAccId" promptText="Account number…" HBox.hgrow="ALWAYS"/>
+                            <Button text="🔍 Search" onAction="#onSearchAccount" styleClass="btn-secondary"/>
+                        </HBox>
+                        <Button text="💰  Sort by Balance ↓" onAction="#onSortAccounts" styleClass="btn-secondary" maxWidth="Infinity"/>
+
+                        <Label fx:id="lblAccMessage" wrapText="true" styleClass="message-label"/>
+                    </VBox>
+
+                    <!-- Right: table -->
+                    <VBox VBox.vgrow="ALWAYS">
+                        <padding><Insets top="20" right="20" bottom="20" left="10"/></padding>
+                        <Label text="All Accounts" styleClass="section-title"/>
+                        <TableView fx:id="tblAccounts" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colAccNumber"  text="Account #"  minWidth="100" prefWidth="120"/>
+                                <TableColumn fx:id="colAccType"    text="Type"       minWidth="130" prefWidth="160"/>
+                                <TableColumn fx:id="colAccOwner"   text="Owner"      minWidth="140" prefWidth="180"/>
+                                <TableColumn fx:id="colAccBalance" text="Balance"    minWidth="90"  prefWidth="110"/>
+                                <TableColumn fx:id="colAccExtra"   text="Extra"      minWidth="110" prefWidth="130"/>
+                            </columns>
+                            <placeholder><Label text="No accounts opened yet."/></placeholder>
+                        </TableView>
+                    </VBox>
+                </SplitPane>
+            </Tab>
+
+            <!-- ─────────────────────────────────────────────────────
+                 TAB 3 — Transactions
+            ───────────────────────────────────────────────────── -->
+            <Tab text="💳  Transactions">
+                <SplitPane dividerPositions="0.38" orientation="HORIZONTAL">
+
+                    <!-- Left: form -->
+                    <VBox spacing="10" styleClass="form-panel">
+                        <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+
+                        <Label text="Perform Transaction" styleClass="section-title"/>
+                        <Separator/>
+
+                        <Label text="Account Number"/>
+                        <TextField fx:id="tfTxnAccNumber" promptText="e.g. SA-1001"/>
+
+                        <Label text="Transaction Type"/>
+                        <ComboBox fx:id="cbTxnType" maxWidth="Infinity"/>
+
+                        <Label text="Amount ($)"/>
+                        <TextField fx:id="tfTxnAmount" promptText="e.g. 250.00"/>
+
+                        <HBox spacing="8">
+                            <Button text="✅  Execute"       onAction="#onPerformTransaction" styleClass="btn-primary"/>
+                            <Button text="📋  Load History"  onAction="#onLoadHistory"        styleClass="btn-secondary"/>
+                        </HBox>
+
+                        <Label fx:id="lblTxnMessage" wrapText="true" styleClass="message-label"/>
+                    </VBox>
+
+                    <!-- Right: transaction history table -->
+                    <VBox VBox.vgrow="ALWAYS">
+                        <padding><Insets top="20" right="20" bottom="20" left="10"/></padding>
+                        <Label text="Transaction History" styleClass="section-title"/>
+                        <TableView fx:id="tblTransactions" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colTxnType"   text="Type"        prefWidth="120"/>
+                                <TableColumn fx:id="colTxnAmount" text="Amount"      prefWidth="120"/>
+                                <TableColumn fx:id="colTxnDesc"   text="Description" prefWidth="200"/>
+                            </columns>
+                            <placeholder><Label text="Load an account's history to see transactions."/></placeholder>
+                        </TableView>
+                    </VBox>
+                </SplitPane>
+            </Tab>
+
+            <!-- ─────────────────────────────────────────────────────
+                 TAB 4 — Activity Log
+            ───────────────────────────────────────────────────── -->
+            <Tab text="📋  Activity Log">
+                <VBox spacing="10">
+                    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="Recent Activity" styleClass="section-title"/>
+                        <Button text="🔄  Refresh" onAction="#onRefreshLog" styleClass="btn-secondary"/>
+                    </HBox>
+                    <ListView fx:id="lstLog" VBox.vgrow="ALWAYS" styleClass="log-list"/>
+                </VBox>
+            </Tab>
+
+        </TabPane>
+    </center>
+
+</BorderPane>
