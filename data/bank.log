@@ -1,0 +1,11 @@
+[2026-05-03 13:14:28] [INFO] Application started — data loaded from files.
+[2026-05-03 13:15:22] [ERROR] Add customer failed: A customer with ID 'C002' is already registered.
+[2026-05-03 13:15:41] [SUCCESS] Customer removed: Akimana Meghan [C002]
+[2026-05-03 13:31:18] [INFO] Application started — data loaded from files.
+[2026-05-03 13:32:40] [SUCCESS] Customer added: Bwiza Amelia [C004]
+[2026-05-03 13:32:54] [SUCCESS] Customer removed: Bwiza Amelia [C004]
+[2026-05-03 13:33:53] [SUCCESS] Customer added: Abikunda Amelia [C006]
+[2026-05-03 13:34:13] [WARNING] Customer search: not found — Abikunda Amelia
+[2026-05-03 13:34:55] [SUCCESS] Customer added: Umwiza Grace [C009]
+[2026-05-03 13:35:54] [SUCCESS] Account opened: SA-002 (Savings Account) for Umwiza Grace
+[2026-05-03 13:36:24] [SUCCESS] Withdrawal $100.00 ? SA-002

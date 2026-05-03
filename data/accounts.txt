@@ -1,0 +1,2 @@
+SA-786|Savings Account|D012|26000.0|0.06
+SA-002|Savings Account|C009|100.0|0.08
